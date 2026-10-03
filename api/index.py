@@ -9,5 +9,16 @@ if project_root not in sys.path:
 
 from backend.app import app
 
-# Expose Flask application instance for Vercel
+class VercelPathFixMiddleware:
+    """Restores the original request URL from Vercel's x-matched-path header."""
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        matched = environ.get('HTTP_X_MATCHED_PATH') or environ.get('x-matched-path')
+        if matched:
+            environ['PATH_INFO'] = matched.split('?')[0]
+        return self.wsgi_app(environ, start_response)
+
+app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 handler = app
