@@ -159,12 +159,21 @@ def create_app():
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve_frontend(path):
+        # When Vercel rewrites root requests to /api/index, serve the frontend index.html
+        if path in ['', 'api/index', 'api/index.py', 'index', 'index.html']:
+            for folder in [os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'public')), app.static_folder]:
+                idx_file = os.path.join(folder, 'index.html')
+                if os.path.exists(idx_file):
+                    return send_from_directory(folder, 'index.html')
+
         if path.startswith('api/') or path == 'api':
             return jsonify({"success": False, "error": f"API endpoint '/{path}' not found"}), 404
-        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        elif os.path.exists(os.path.join(app.static_folder, 'index.html')):
-            return send_from_directory(app.static_folder, 'index.html')
+
+        for folder in [os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'public')), app.static_folder]:
+            if path != "" and os.path.exists(os.path.join(folder, path)):
+                return send_from_directory(folder, path)
+            elif os.path.exists(os.path.join(folder, 'index.html')):
+                return send_from_directory(folder, 'index.html')
         else:
             return jsonify({
                 "message": "Academic Library Management System REST API is running.",

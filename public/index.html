@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    if (localStorage.getItem('lib_theme') === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>LIBRARY - Modern Library Management System</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          screens: {
+            'xs': '420px',
+          },
+          colors: {
+            libra: {
+              50: '#fff5f2',
+              100: '#ffe8e2',
+              200: '#ffd4c8',
+              300: '#ffb3a0',
+              400: '#ff8668',
+              500: '#ff5c35', /* Core Brand Orange */
+              600: '#f0431a',
+              700: '#c8320f',
+              800: '#9f2910',
+              900: '#802613',
+            },
+            surface: {
+              light: '#f4f5f8',
+              card: '#ffffff',
+              dark: '#0b0f19',
+              darkcard: '#151b2a',
+              border: '#e8ebf2',
+              darkborder: '#232c40'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            heading: ['Outfit', '"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-app: #f4f5f8;
+      --bg-card: #ffffff;
+      --text-main: #19202e;
+      --text-muted: #64748b;
+      --border-subtle: #edf0f5;
+    }
+    html.dark {
+      --bg-app: #0b0f19;
+      --bg-card: #151b2a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-subtle: #1e283d;
+    }
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      touch-action: manipulation;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    html.dark ::-webkit-scrollbar-thumb { background: #334155; }
+    .card-shadow {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+    .dark .card-shadow {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .backdrop-blur-md {
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    @media screen and (max-width: 768px) {
+      input, select, textarea {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    function Icon({ name, className = "w-4 h-4" }) {
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+      return <i data-lucide={name} className={className}></i>;
+    }
+
+    const API_BASE = '/api';
+
+    async function apiRequest(endpoint, options = {}) {
+      const res = await fetch(`${API_BASE}${endpoint}`, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    // Dynamic Book Cover Generator with stylish book aesthetic
+    function BookCover({ title = "Book", genre = "Computer Science", className = "w-9 h-12 rounded-lg" }) {
+      const palette = useMemo(() => {
+        const hash = title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const palettes = [
+          { bg: 'from-blue-600 to-indigo-900', border: 'border-blue-400/30', spine: 'bg-blue-800' },
+          { bg: 'from-amber-600 to-orange-800', border: 'border-orange-400/30', spine: 'bg-orange-800' },
+          { bg: 'from-emerald-600 to-teal-900', border: 'border-emerald-400/30', spine: 'bg-emerald-800' },
+          { bg: 'from-rose-600 to-pink-900', border: 'border-rose-400/30', spine: 'bg-rose-800' },
+          { bg: 'from-purple-600 to-indigo-900', border: 'border-purple-400/30', spine: 'bg-purple-800' },
+          { bg: 'from-cyan-600 to-sky-900', border: 'border-cyan-400/30', spine: 'bg-cyan-800' },
+        ];
+        return palettes[hash % palettes.length];
+      }, [title]);
+
+      return (
+        <div className={`relative shrink-0 flex flex-col justify-between overflow-hidden shadow-sm bg-gradient-to-br ${palette.bg} border ${palette.border} p-1 text-white select-none ${className}`}>
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-black/25"></div>
+          <div className="pl-1">
+            <span className="text-[6px] tracking-tight block uppercase font-bold opacity-80 leading-none">LIBRARY</span>
+          </div>
+          <div className="pl-1 truncate">
+            <span className="text-[7px] font-extrabold leading-tight block truncate opacity-95">{title}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // BRAND LOGO COMPONENT ("LIBRARY" IN TOP LEFT CORNER)
+    // =========================================================================
+    function LibraryLogo({ size = "md" }) {
+      return (
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-libra-500 flex items-center justify-center text-white shadow-md shadow-libra-500/25 shrink-0">
+            {/* Stylized Library Book Emblem */}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4 sm:w-5 sm:h-5 text-white">
+              <path d="M4 19h16" />
+              <path d="M4 14h16" />
+              <path d="M7 6l5-3 5 3v5H7V6z" />
+            </svg>
+          </div>
+          <span className="font-extrabold text-base sm:text-lg tracking-wider font-heading text-slate-900 dark:text-white truncate">
+            LIBRARY
+          </span>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // LOGIN SCREEN
+    // =========================================================================
+    function LoginScreen({ onLoginSuccess, onRefresh }) {
+      const [role, setRole] = useState('student'); // 'student', 'staff', 'admin'
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [showPassword, setShowPassword] = useState(false);
+      const [errorMsg, setErrorMsg] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      // Student Registration State
+      const [showRegisterModal, setShowRegisterModal] = useState(false);
+      const [regName, setRegName] = useState('');
+      const [regEmail, setRegEmail] = useState('');
+      const [regPassword, setRegPassword] = useState('');
+      const [regLimit, setRegLimit] = useState(5);
+      const [regLoading, setRegLoading] = useState(false);
+      const [regSuccess, setRegSuccess] = useState('');
+
+      const handleLogin = async (e, directId = null, directRole = null, directPw = null) => {
+        if (e) e.preventDefault();
+        setErrorMsg('');
+        setLoading(true);
+
+        const targetRole = directRole || role;
+        const targetId = directId !== null ? directId : username;
+        const targetPw = directPw !== null ? directPw : password;
+
+        try {
+          const res = await apiRequest('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: targetRole,
+              identifier: targetId,
+              password: targetPw
+            })
+          });
+          if (res.success) {
+            onLoginSuccess(res.user);
+          }
+        } catch (err) {
+          setErrorMsg(err.message || 'Login failed. Please check your credentials.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleStudentRegister = async (e) => {
+        e.preventDefault();
+        setRegLoading(true);
+        setErrorMsg('');
+        setRegSuccess('');
+
+        try {
+          const res = await apiRequest('/members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              Full_Name: regName,
+              Email_Address: regEmail,
+              Password: regPassword,
+              Max_Books_Allowed: parseInt(regLimit) || 5
+            })
+          });
+
+          if (res.success) {
+            setRegSuccess(`Account successfully created for ${regName}!`);
+            if (onRefresh) onRefresh();
+            setTimeout(() => {
+              setShowRegisterModal(false);
+              handleLogin(null, regEmail, 'student', regPassword);
+            }, 600);
+          }
+        } catch (err) {
+          setErrorMsg(err.message || 'Registration failed.');
+        } finally {
+          setRegLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-[#f4f5f8] dark:bg-[#0b0f19]">
+          <div className="w-full max-w-md bg-white dark:bg-[#151b2a] rounded-3xl p-5 sm:p-8 card-shadow border border-slate-200/80 dark:border-slate-800 relative">
+            {/* Top Brand Header */}
+            <div className="flex flex-col items-center text-center mb-6">
+              <LibraryLogo />
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-3 font-heading">
+                Welcome to Library Portal
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Enter your credentials to access your library account
+              </p>
+            </div>
+
+            {/* Role Switcher Tabs */}
+            <div className="flex bg-slate-100 dark:bg-slate-900/90 p-1 rounded-2xl mb-5">
+              {[
+                { id: 'student', label: 'Student', icon: 'graduation-cap' },
+                { id: 'staff', label: 'Staff', icon: 'shield-check' },
+                { id: 'admin', label: 'Admin', icon: 'lock' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setRole(t.id); setErrorMsg(''); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    role === t.id
+                      ? 'bg-libra-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon name={t.icon} className="w-3.5 h-3.5" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-xs flex items-center gap-2">
+                <Icon name="alert-circle" className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Standard Login Form with clean Username & Password inputs */}
+            <form onSubmit={e => handleLogin(e)} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Username
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-libra-500 transition"
+                  />
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Icon name="user" className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-libra-500 transition pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={showPassword ? "Hide" : "Show"}
+                  >
+                    <Icon name={showPassword ? 'eye-off' : 'eye'} className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-libra-500 hover:bg-libra-600 text-white font-bold rounded-xl text-xs shadow-md shadow-libra-500/20 transition-all flex items-center justify-center gap-2 mt-2"
+              >
+                {loading ? 'Authenticating...' : `Sign In as ${role.toUpperCase()}`}
+              </button>
+
+              {role === 'student' && (
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowRegisterModal(true); setErrorMsg(''); setRegSuccess(''); }}
+                    className="text-xs font-semibold text-libra-500 hover:underline transition"
+                  >
+                    + New Student? Create an Account Here
+                  </button>
+                </div>
+              )}
+            </form>
+
+            {/* Modal: Student Registration */}
+            {showRegisterModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="bg-white dark:bg-[#151b2a] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative text-xs">
+                  <button
+                    onClick={() => setShowRegisterModal(false)}
+                    className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-bold"
+                  >
+                    &times;
+                  </button>
+
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-libra-500 text-white flex items-center justify-center">
+                      <Icon name="graduation-cap" className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Student Account</h3>
+                      <p className="text-[11px] text-slate-500">Join the Academic Library Network</p>
+                    </div>
+                  </div>
+
+                  {regSuccess && (
+                    <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-800 dark:text-emerald-300">
+                      {regSuccess}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleStudentRegister} className="space-y-3.5">
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Full Name"
+                        value={regName}
+                        onChange={e => setRegName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="Email Address"
+                        value={regEmail}
+                        onChange={e => setRegEmail(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password *</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Choose a password"
+                        value={regPassword}
+                        onChange={e => setRegPassword(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterModal(false)}
+                        className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={regLoading}
+                        className="px-4 py-2 bg-libra-500 text-white font-bold rounded-xl shadow transition"
+                      >
+                        {regLoading ? 'Registering...' : 'Register Account'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // MAIN APP LAYOUT (MOBILE RESPONSIVE NAVBAR & CONTENT SCALING)
+    // =========================================================================
+    function App() {
+      const [theme, setTheme] = useState(() => localStorage.getItem('lib_theme') || 'light');
+      const [activeNav, setActiveNav] = useState('members'); // 'dashboard', 'inbox', 'activity', 'books', 'members', 'settings'
+      const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [showMobileSearch, setShowMobileSearch] = useState(false);
+
+      const [currentUser, setCurrentUser] = useState(() => {
+        try {
+          return JSON.parse(localStorage.getItem('lib_current_user')) || null;
+        } catch (e) {
+          return null;
+        }
+      });
+
+      // Database State
+      const [books, setBooks] = useState([]);
+      const [members, setMembers] = useState([]);
+      const [staffList, setStaffList] = useState([]);
+      const [transactions, setTransactions] = useState([]);
+      const [selectedMemberId, setSelectedMemberId] = useState(null);
+
+      const selectedMember = useMemo(() => {
+        if (!members || members.length === 0) return null;
+        if (currentUser && currentUser.role === 'student') {
+          return members.find(m => m.Member_ID === currentUser.member_id) || members[0];
+        }
+        if (selectedMemberId) {
+          return members.find(m => m.Member_ID === selectedMemberId) || members[0];
+        }
+        return members[0];
+      }, [members, currentUser, selectedMemberId]);
+
+      // Demo/Interactive Reservations state
+      const [reservations, setReservations] = useState([
+        { id: 1, title: 'The Coffee Shop Next...', author: 'Daxon Reid', queue: '#2 of 5', status: 'Ready' },
+        { id: 2, title: 'Dune Whisper', author: 'Kael Rowan', queue: '#1 of 7', status: 'Ready' },
+        { id: 3, title: 'Floral Dreams', author: 'Nyra Solis', queue: '#6 of 8', status: 'Pending' }
+      ]);
+
+      // Demo/Interactive Fines & Payment History
+      const [finesList, setFinesList] = useState([
+        { id: 1, title: 'The Book of Prayer', code: 'BK-08745', amount: '₹1.00', reason: 'Late' },
+        { id: 2, title: 'Drew Feig', code: 'BK-08745', amount: '₹5.00', reason: 'Damage' },
+        { id: 3, title: 'The Lost Kingdom', code: 'BK-08745', amount: '₹10.00', reason: 'Lost' }
+      ]);
+
+      const [paymentHistory, setPaymentHistory] = useState([
+        { id: 1, date: 'Sept 01, 2025', desc: 'Membership Renewal (Standard – 1 Year)', amount: '₹10.00' },
+        { id: 2, date: 'Jul 18, 2025', desc: 'Fine Payment (Database Systems)', amount: '₹1.00' },
+        { id: 3, date: 'Sept 01, 2024', desc: 'Membership Renewal (Standard – 1 Year)', amount: '₹10.00' }
+      ]);
+
+      const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        localStorage.setItem('lib_theme', next);
+        if (next === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      };
+
+      const fetchAllData = async () => {
+        try {
+          const [bRes, mRes, sRes, tRes] = await Promise.all([
+            apiRequest('/books'),
+            apiRequest('/members'),
+            apiRequest('/staff'),
+            apiRequest('/circulation/transactions')
+          ]);
+          if (bRes.success) setBooks(bRes.books);
+          if (mRes.success) {
+            setMembers(mRes.members);
+            if (!selectedMemberId && mRes.members.length > 0) {
+              setSelectedMemberId(mRes.members[0].Member_ID);
+            }
+          }
+          if (sRes.success) setStaffList(sRes.staff);
+          if (tRes.success) setTransactions(tRes.transactions);
+        } catch (e) {
+          console.warn(e);
+        }
+      };
+
+      useEffect(() => {
+        fetchAllData();
+      }, []);
+
+      const handleLoginSuccess = (user) => {
+        setCurrentUser(user);
+        localStorage.setItem('lib_current_user', JSON.stringify(user));
+        if (user.role === 'student') {
+          setSelectedMemberId(user.member_id);
+          setActiveNav('members');
+        } else {
+          setActiveNav('members');
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        localStorage.removeItem('lib_current_user');
+      };
+
+      if (!currentUser) {
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} onRefresh={fetchAllData} />;
+      }
+
+      return (
+        <div className={`min-h-screen transition-colors duration-200 flex flex-col lg:flex-row ${theme === 'dark' ? 'dark bg-[#0b0f19] text-slate-100' : 'bg-[#f4f5f8] text-slate-900'}`}>
+          {/* Mobile Overlay */}
+          {mobileSidebarOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+          )}
+
+          {/* ===================================================================
+              LEFT SIDEBAR (WITH "LIBRARY" LOGO AT TOP LEFT)
+              =================================================================== */}
+          <aside className={`fixed inset-y-0 left-0 z-50 w-64 max-w-[80vw] bg-white dark:bg-[#151b2a] border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between p-5 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+            mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+          }`}>
+            <div>
+              {/* Brand Logo & Name: "LIBRARY" */}
+              <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800/60">
+                <LibraryLogo />
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                  aria-label="Close sidebar"
+                >
+                  <Icon name="x" className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Navigation Menu */}
+              <nav className="mt-5 space-y-1.5">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: 'layout-grid' },
+                  { id: 'inbox', label: 'Inbox', icon: 'mail' },
+                  { id: 'activity', label: 'Library Activity', icon: 'activity' },
+                  { id: 'books', label: 'Books', icon: 'book' },
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => { setActiveNav(item.id); setMobileSidebarOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                      activeNav === item.id
+                        ? 'bg-libra-500 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon name={item.icon} className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+
+                {/* Management Section Heading */}
+                <div className="pt-2 pb-1">
+                  <div className="px-4 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                    <span>Management</span>
+                    <Icon name="chevron-down" className="w-3 h-3 text-slate-400" />
+                  </div>
+                </div>
+
+                {/* Members Nav Item (Highlighted in Orange Pill in Screenshot!) */}
+                <button
+                  onClick={() => { setActiveNav('members'); setMobileSidebarOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                    activeNav === 'members'
+                      ? 'bg-libra-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon name="users" className="w-4 h-4 shrink-0" />
+                  <span>Members</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveNav('settings'); setMobileSidebarOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                    activeNav === 'settings'
+                      ? 'bg-libra-500 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon name="settings" className="w-4 h-4 shrink-0" />
+                  <span>Settings</span>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 transition-all"
+                >
+                  <Icon name="log-out" className="w-4 h-4 shrink-0" />
+                  <span>Logout</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Bottom Promo Card */}
+            <div className="rounded-2xl p-4 bg-slate-100 dark:bg-slate-900/90 border border-slate-200/60 dark:border-slate-800/80">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading">
+                On-the-Go Management
+              </h4>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                Library Mobile lets you access books, members, and stats anytime, anywhere.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveNav('books')}
+                className="mt-3 w-full py-2 bg-libra-500 hover:bg-libra-600 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+              >
+                Try for Free
+              </button>
+            </div>
+          </aside>
+
+          {/* ===================================================================
+              MAIN CONTENT CONTAINER (WITH TOP NAVBAR & DYNAMIC PAGES)
+              =================================================================== */}
+          <div className="flex-1 flex flex-col min-w-0 lg:pl-64 w-full">
+            {/* TOP HEADER (MOBILE OPTIMIZED: STABLE, RESPONSIVE, ZERO WRAPPING BUGS) */}
+            <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#151b2a]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4 max-w-full">
+              {/* Left: Mobile hamburger & Brand/Breadcrumbs */}
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
+                  aria-label="Open menu"
+                >
+                  <Icon name="menu" className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                {/* Mobile Top Brand Badge */}
+                <div className="flex items-center gap-1.5 lg:hidden shrink-0">
+                  <div className="w-6 h-6 rounded-lg bg-libra-500 flex items-center justify-center text-white shadow-xs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5 text-white">
+                      <path d="M4 19h16" />
+                      <path d="M4 14h16" />
+                      <path d="M7 6l5-3 5 3v5H7V6z" />
+                    </svg>
+                  </div>
+                  <span className="font-extrabold text-xs tracking-wider text-libra-500 font-heading">
+                    LIBRARY
+                  </span>
+                </div>
+
+                <div className="min-w-0 hidden sm:block">
+                  <h1 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white font-heading leading-tight truncate">
+                    {activeNav === 'members' ? 'Member Details' :
+                     activeNav === 'dashboard' ? 'Library Overview' :
+                     activeNav === 'books' ? 'Books Catalog' :
+                     activeNav === 'activity' ? 'Library Activity' :
+                     activeNav === 'inbox' ? 'System Inbox & Alerts' : 'Settings'}
+                  </h1>
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 font-medium truncate">
+                    <span>Dashboard</span>
+                    <span>/</span>
+                    <span className="capitalize">{activeNav}</span>
+                    {activeNav === 'members' && (
+                      <>
+                        <span>/</span>
+                        <span className="text-libra-500 font-semibold truncate">Member Details</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Search, Notifications, Theme Toggle & User Avatar */}
+              <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
+                {/* Search Input Bar (Desktop) */}
+                <div className="hidden md:flex items-center relative w-44 lg:w-64">
+                  <input
+                    type="text"
+                    placeholder="Search anything"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-libra-500 transition"
+                  />
+                  <div className="absolute left-3 text-slate-400">
+                    <Icon name="search" className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer">
+                    <Icon name="sliders-horizontal" className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                {/* Mobile Search Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSearch(!showMobileSearch)}
+                  className="md:hidden p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 shadow-xs"
+                  aria-label="Search"
+                >
+                  <Icon name="search" className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Notifications Bell */}
+                <button
+                  type="button"
+                  onClick={() => setActiveNav('inbox')}
+                  className="p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 relative transition shadow-sm"
+                  title="Notifications"
+                >
+                  <Icon name="bell" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-libra-500"></span>
+                </button>
+
+                {/* Theme Toggle (Light / Dark) */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm"
+                  title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${theme === 'dark' ? 'text-amber-400' : 'text-slate-700'}`} />
+                </button>
+
+                {/* User Profile Pill */}
+                <div className="flex items-center gap-1.5 sm:gap-2 pl-0.5 sm:pl-2">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-libra-500 to-orange-400 flex items-center justify-center text-white font-bold text-xs shadow-sm ring-1 sm:ring-2 ring-white dark:ring-slate-800 shrink-0">
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div className="hidden sm:block text-left max-w-[110px] lg:max-w-none">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate">
+                      {currentUser.name || 'Noah Tanaka'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-semibold capitalize">
+                      {currentUser.role || 'Admin'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* Mobile Search Expandable Dropdown */}
+            {showMobileSearch && (
+              <div className="md:hidden px-3 py-2 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search anything..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#151b2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-libra-500"
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Icon name="search" className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE CONTENT CONTAINER (RESPONSIVE SCALING FOR ALL DEVICES) */}
+            <main className="p-3 sm:p-5 lg:p-7 flex-1 w-full max-w-full">
+              {activeNav === 'members' && (
+                <MemberDetailsView
+                  member={selectedMember}
+                  allMembers={members}
+                  onSelectMember={id => setSelectedMemberId(id)}
+                  books={books}
+                  transactions={transactions}
+                  reservations={reservations}
+                  finesList={finesList}
+                  paymentHistory={paymentHistory}
+                  currentUser={currentUser}
+                  onRefresh={fetchAllData}
+                />
+              )}
+
+              {activeNav === 'dashboard' && (
+                <DashboardOverview
+                  books={books}
+                  members={members}
+                  staffList={staffList}
+                  transactions={transactions}
+                  currentUser={currentUser}
+                  onNavigate={setActiveNav}
+                  onRefresh={fetchAllData}
+                />
+              )}
+
+              {activeNav === 'books' && (
+                <BooksCatalogView
+                  books={books}
+                  currentUser={currentUser}
+                  onRefresh={fetchAllData}
+                  searchQuery={searchQuery}
+                />
+              )}
+
+              {activeNav === 'activity' && (
+                <LibraryActivityView
+                  transactions={transactions}
+                  books={books}
+                  members={members}
+                  currentUser={currentUser}
+                  onRefresh={fetchAllData}
+                />
+              )}
+
+              {activeNav === 'inbox' && (
+                <InboxAlertsView
+                  transactions={transactions}
+                  currentUser={currentUser}
+                />
+              )}
+
+              {activeNav === 'settings' && (
+                <SettingsView
+                  currentUser={currentUser}
+                  theme={theme}
+                  toggleTheme={toggleTheme}
+                  onRefresh={fetchAllData}
+                />
+              )}
+            </main>
+
+            {/* FOOTER */}
+            <footer className="mt-auto px-4 sm:px-6 py-4 sm:py-5 border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#151b2a] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4">
+                <span>Copyright © 2025 Peterdraw / Library</span>
+                <a href="#privacy" onClick={e => e.preventDefault()} className="hover:text-libra-500">Privacy Policy</a>
+                <a href="#terms" onClick={e => e.preventDefault()} className="hover:text-libra-500">Terms and conditions</a>
+                <a href="#contact" onClick={e => e.preventDefault()} className="hover:text-libra-500">Contact</a>
+              </div>
+              <div className="flex items-center gap-3 text-slate-400">
+                <a href="#facebook" onClick={e => e.preventDefault()} className="hover:text-slate-600 dark:hover:text-white" title="Facebook">
+                  <Icon name="facebook" className="w-3.5 h-3.5" />
+                </a>
+                <a href="#twitter" onClick={e => e.preventDefault()} className="hover:text-slate-600 dark:hover:text-white" title="X / Twitter">
+                  <Icon name="twitter" className="w-3.5 h-3.5" />
+                </a>
+                <a href="#instagram" onClick={e => e.preventDefault()} className="hover:text-slate-600 dark:hover:text-white" title="Instagram">
+                  <Icon name="instagram" className="w-3.5 h-3.5" />
+                </a>
+                <a href="#youtube" onClick={e => e.preventDefault()} className="hover:text-slate-600 dark:hover:text-white" title="YouTube">
+                  <Icon name="youtube" className="w-3.5 h-3.5" />
+                </a>
+                <a href="#linkedin" onClick={e => e.preventDefault()} className="hover:text-slate-600 dark:hover:text-white" title="LinkedIn">
+                  <Icon name="linkedin" className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // MEMBER DETAILS VIEW (RESPONSIVE SCALING ACROSS ALL DEVICES)
+    // =========================================================================
+    function MemberDetailsView({
+      member,
+      allMembers = [],
+      onSelectMember,
+      books = [],
+      transactions = [],
+      reservations = [],
+      finesList = [],
+      paymentHistory = [],
+      currentUser,
+      onRefresh
+    }) {
+      const [trendFilter, setTrendFilter] = useState('Last 8 Months');
+      const [borrowTableFilter, setBorrowTableFilter] = useState('This Week');
+      const [showEditModal, setShowEditModal] = useState(false);
+
+      const currentMember = member || {
+        Member_ID: 1643,
+        Full_Name: 'Noah Trent',
+        Email_Address: 'noah.trent@email.com',
+        Membership_Date: '2024-03-01',
+        Max_Books_Allowed: 5
+      };
+
+      const memberTx = useMemo(() => {
+        return transactions.filter(t => t.Member_ID === currentMember.Member_ID);
+      }, [transactions, currentMember]);
+
+      const activeLoans = memberTx.filter(t => t.Return_Date === null);
+      const overdueLoans = activeLoans.filter(t => t.Days_Overdue > 0);
+
+      const borrowedCount = activeLoans.length || 2;
+      const reservedCount = 3;
+      const overdueCount = overdueLoans.length || 2;
+
+      const displayBorrowedBooks = useMemo(() => {
+        if (memberTx.length > 0) {
+          return memberTx.map(t => ({
+            id: t.Transaction_ID,
+            title: t.Book_Title,
+            author: 'Library Collection',
+            issueDue: `${t.Issue_Date} – ${t.Due_Date}`,
+            returnDate: t.Return_Date || '—',
+            status: t.Return_Date ? 'Returned' : (t.Days_Overdue > 0 ? 'Overdue' : 'Borrowed'),
+            fine: t.Fine_Amount > 0 ? `₹${parseFloat(t.Fine_Amount).toFixed(2)}` : '0'
+          }));
+        }
+        return [
+          { id: 1, title: 'My Story', author: 'Leo Vance', issueDue: 'Sept 22 – Oct 06, 2035', returnDate: '—', status: 'Borrowed', fine: '0' },
+          { id: 2, title: 'Everything Kimchi', author: 'Callen Dray', issueDue: 'Sept 10 – Sept 24, 2035', returnDate: '—', status: 'Overdue', fine: '₹1.50' },
+          { id: 3, title: 'Where The Flowers Bloom', author: 'Elara Quinn', issueDue: 'Aug 15 – Aug 29, 2035', returnDate: 'Aug 30, 2035', status: 'Returned', fine: '₹1.00' },
+        ];
+      }, [memberTx]);
+
+      const [editName, setEditName] = useState(currentMember.Full_Name);
+      const [editEmail, setEditEmail] = useState(currentMember.Email_Address);
+      const [editPassword, setEditPassword] = useState('');
+      const [editSaving, setEditSaving] = useState(false);
+      const [editSuccess, setEditSuccess] = useState('');
+
+      const handleSaveMember = async (e) => {
+        e.preventDefault();
+        setEditSaving(true);
+        try {
+          await apiRequest(`/members/${currentMember.Member_ID}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              Full_Name: editName,
+              Email_Address: editEmail,
+              Password: editPassword || undefined
+            })
+          });
+          setEditSuccess('Member details updated successfully!');
+          if (onRefresh) onRefresh();
+          setTimeout(() => setShowEditModal(false), 800);
+        } catch (err) {
+          alert(err.message || 'Failed to update member');
+        } finally {
+          setEditSaving(false);
+        }
+      };
+
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Member Switcher Bar for Admin / Staff */}
+          {currentUser && currentUser.role !== 'student' && allMembers.length > 0 && (
+            <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-3 px-4 border border-slate-200/80 dark:border-slate-800 card-shadow flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex items-center gap-2 text-xs min-w-0">
+                <span className="font-bold text-slate-500 dark:text-slate-400 shrink-0">Viewing Member:</span>
+                <span className="font-bold text-slate-900 dark:text-white truncate">{currentMember.Full_Name}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                  ID: #{currentMember.Member_ID}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  value={currentMember.Member_ID}
+                  onChange={e => onSelectMember(parseInt(e.target.value))}
+                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-libra-500 w-full sm:w-64"
+                >
+                  {allMembers.map(m => (
+                    <option key={m.Member_ID} value={m.Member_ID}>
+                      {m.Full_Name} ({m.Email_Address})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================
+              3-COLUMN MAIN GRID (DESKTOP: 3-5-4; TABLET/MOBILE: CLEAN SCALED STACK)
+              ================================================================= */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 min-w-0 max-w-full">
+
+            {/* ---------------------------------------------------------------
+                COLUMN 1: PROFILE CARD (LEFT COLUMN)
+                --------------------------------------------------------------- */}
+            <div className="lg:col-span-3 space-y-4 sm:space-y-6 min-w-0 max-w-full">
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                {/* Profile Header */}
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Profile</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditName(currentMember.Full_Name);
+                      setEditEmail(currentMember.Email_Address);
+                      setShowEditModal(true);
+                    }}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                    title="Edit Profile"
+                  >
+                    <Icon name="more-horizontal" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Avatar with orange rounded card background */}
+                <div className="text-center pb-4 sm:pb-5 border-b border-slate-100 dark:border-slate-800/80">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-tr from-libra-500 to-orange-400 p-1 flex items-center justify-center text-white shadow-md shadow-libra-500/20 mb-2.5 sm:mb-3">
+                    <div className="w-full h-full rounded-2xl bg-white/10 flex items-center justify-center">
+                      <Icon name="user" className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                    </div>
+                  </div>
+                  <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white font-heading">
+                    {currentMember.Full_Name}
+                  </h4>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono">
+                      MBR-{String(currentMember.Member_ID).padStart(4, '0')}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      Standard
+                    </span>
+                  </div>
+                </div>
+
+                {/* Details List */}
+                <div className="py-3 sm:py-4 space-y-2.5 sm:space-y-3 text-xs border-b border-slate-100 dark:border-slate-800/80">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-400 shrink-0">Gender</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-right">Male</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-400 shrink-0">Date of Birth</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-right">March 14, 2004</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-400 shrink-0">Status</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-400 shrink-0">Join Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-right">
+                      {currentMember.Membership_Date ? currentMember.Membership_Date : 'March 01, 2024'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-slate-400 shrink-0">Expiry Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-right">March 01, 2026</span>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="pt-3 sm:pt-4 space-y-2.5 sm:space-y-3 text-xs">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">Contact Info</h4>
+                  
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1e2433] text-white flex items-center justify-center shrink-0">
+                      <Icon name="mail" className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] sm:text-[10px] text-slate-400 block">Email Address</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate block">
+                        {currentMember.Email_Address}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-libra-500 text-white flex items-center justify-center shrink-0">
+                      <Icon name="phone" className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] sm:text-[10px] text-slate-400 block">Phone Number</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate block">
+                        +91 98765 43210
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1e2433] text-white flex items-center justify-center shrink-0">
+                      <Icon name="phone-call" className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] sm:text-[10px] text-slate-400 block">Emergency Contact</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate block">
+                        +91 98765 12345 (Faculty)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ---------------------------------------------------------------
+                COLUMN 2: MIDDLE COLUMN (METRIC CARDS, TREND CHART, INSIGHTS,
+                          BORROWED BOOKS TABLE)
+                --------------------------------------------------------------- */}
+            <div className="lg:col-span-5 space-y-4 sm:space-y-6 min-w-0 max-w-full">
+              {/* Row of 3 KPI Metric Cards (Responsive on Mobile) */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full min-w-0">
+                {/* 1. Currently Borrowed */}
+                <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-2 sm:p-4 border border-slate-200/80 dark:border-slate-800 card-shadow flex flex-col justify-between min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1e2433] text-white flex items-center justify-center mb-1.5 sm:mb-3 shrink-0">
+                    <Icon name="book" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 block leading-tight truncate">Currently Borrowed</span>
+                    <span className="text-xs sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white font-heading block mt-0.5 truncate">
+                      {borrowedCount} books
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Books Reserved */}
+                <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-2 sm:p-4 border border-slate-200/80 dark:border-slate-800 card-shadow flex flex-col justify-between min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-libra-500 text-white flex items-center justify-center mb-1.5 sm:mb-3 shrink-0">
+                    <Icon name="calendar" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 block leading-tight truncate">Books Reserved</span>
+                    <span className="text-xs sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white font-heading block mt-0.5 truncate">
+                      {reservedCount} books
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Overdue Books */}
+                <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-2 sm:p-4 border border-slate-200/80 dark:border-slate-800 card-shadow flex flex-col justify-between min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1e2433] text-white flex items-center justify-center mb-1.5 sm:mb-3 shrink-0">
+                    <Icon name="clock" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 block leading-tight truncate">Overdue Books</span>
+                    <span className="text-xs sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white font-heading block mt-0.5 truncate">
+                      {overdueCount} books
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Borrowing Trend Bar Chart Card */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Borrowing Trend</h3>
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 sm:px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span>{trendFilter}</span>
+                    <Icon name="chevron-down" className="w-3 h-3 ml-0.5" />
+                  </div>
+                </div>
+
+                {/* Interactive Bar Chart */}
+                <div className="h-36 sm:h-44 flex items-end justify-between gap-1 sm:gap-3 pt-6 pb-2 px-1 relative w-full min-w-0">
+                  <div className="absolute inset-x-0 top-0 border-b border-dashed border-slate-100 dark:border-slate-800/80 text-[9px] text-slate-300 dark:text-slate-600 pl-1">8</div>
+                  <div className="absolute inset-x-0 top-1/4 border-b border-dashed border-slate-100 dark:border-slate-800/80 text-[9px] text-slate-300 dark:text-slate-600 pl-1">6</div>
+                  <div className="absolute inset-x-0 top-2/4 border-b border-dashed border-slate-100 dark:border-slate-800/80 text-[9px] text-slate-300 dark:text-slate-600 pl-1">4</div>
+                  <div className="absolute inset-x-0 top-3/4 border-b border-dashed border-slate-100 dark:border-slate-800/80 text-[9px] text-slate-300 dark:text-slate-600 pl-1">2</div>
+
+                  {[
+                    { month: 'Jan', val: 25 },
+                    { month: 'Feb', val: 40 },
+                    { month: 'Mar', val: 55 },
+                    { month: 'Apr', val: 80, active: true, label: '6 Books', year: 'April 2025' },
+                    { month: 'May', val: 50 },
+                    { month: 'Jun', val: 65 },
+                    { month: 'Jul', val: 90 },
+                    { month: 'Aug', val: 60 },
+                  ].map(b => (
+                    <div key={b.month} className="flex-1 min-w-0 flex flex-col items-center h-full justify-end relative group">
+                      {b.active && (
+                        <div className="absolute -top-7 z-10 bg-white dark:bg-slate-800 px-2 py-0.5 sm:py-1 rounded-xl shadow-md border border-slate-100 dark:border-slate-700 text-center whitespace-nowrap pointer-events-none">
+                          <span className="text-[8px] sm:text-[9px] font-semibold text-slate-400 block leading-tight">{b.year}</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-900 dark:text-white leading-tight">{b.label}</span>
+                        </div>
+                      )}
+
+                      <div
+                        className={`w-full max-w-[18px] xs:max-w-[22px] sm:max-w-[28px] rounded-t-xl transition-all duration-300 ${
+                          b.active
+                            ? 'bg-libra-500 shadow-md shadow-libra-500/25 ring-2 ring-libra-400/20'
+                            : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                        style={{ height: `${b.val}%` }}
+                      ></div>
+                      <span className={`text-[9px] sm:text-[10px] font-medium mt-1.5 sm:mt-2 ${b.active ? 'text-libra-500 font-bold' : 'text-slate-400'}`}>
+                        {b.month}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Insights Card */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Insights</h3>
+                  <button type="button" className="text-slate-400 hover:text-slate-600 p-1">
+                    <Icon name="more-horizontal" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 sm:gap-3">
+                  {/* Insight 1: Last Visit Date */}
+                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-2.5 sm:p-3 border border-slate-100 dark:border-slate-800/60 flex flex-col items-center text-center min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-libra-500 text-white flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm shrink-0">
+                      <Icon name="calendar" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-semibold block truncate max-w-full">Last Visit Date</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-full">Oct 08, 2025</span>
+                  </div>
+
+                  {/* Insight 2: Most Borrowed Genre */}
+                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-2.5 sm:p-3 border border-slate-100 dark:border-slate-800/60 flex flex-col items-center text-center min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-[#1e2433] text-white flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm shrink-0">
+                      <Icon name="book" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-semibold block truncate max-w-full">Most Borrowed Genre</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-full">Computer Science</span>
+                  </div>
+
+                  {/* Insight 3: Most Borrowed Author */}
+                  <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-2.5 sm:p-3 border border-slate-100 dark:border-slate-800/60 flex flex-col items-center text-center min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-libra-500 text-white flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm shrink-0">
+                      <Icon name="edit-3" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-semibold block truncate max-w-full">Most Borrowed Author</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-full">Robert C. Martin</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Borrowed Books Table (Smooth Horizontal Scroll on Mobile) */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Borrowed Books</h3>
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 sm:px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span>{borrowTableFilter}</span>
+                    <Icon name="chevron-down" className="w-3 h-3 ml-0.5" />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto w-full max-w-full min-w-0 -mx-4 sm:mx-0 px-4 sm:px-0">
+                  <table className="w-full min-w-[420px] sm:min-w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 font-semibold uppercase">
+                        <th className="pb-2.5 font-semibold">Book</th>
+                        <th className="pb-2.5 font-semibold">Borrow – Due Date</th>
+                        <th className="pb-2.5 font-semibold">Return Date</th>
+                        <th className="pb-2.5 font-semibold text-center">Status</th>
+                        <th className="pb-2.5 font-semibold text-right">Fine</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {displayBorrowedBooks.map(item => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                          <td className="py-2.5 pr-2">
+                            <div className="flex items-center gap-2">
+                              <BookCover title={item.title} className="w-6 h-8 rounded-md shrink-0" />
+                              <div className="min-w-0">
+                                <span className="font-bold text-slate-900 dark:text-white block text-xs line-clamp-1">{item.title}</span>
+                                <span className="text-[10px] text-slate-400 block truncate">{item.author}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-[10px] sm:text-[11px] whitespace-nowrap">
+                            {item.issueDue}
+                          </td>
+
+                          <td className="py-2.5 px-2 text-slate-500 dark:text-slate-400 text-[10px] sm:text-[11px] whitespace-nowrap">
+                            {item.returnDate}
+                          </td>
+
+                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                            {item.status === 'Borrowed' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-libra-500 text-white shadow-xs">
+                                Borrowed
+                              </span>
+                            ) : item.status === 'Overdue' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900">
+                                Overdue
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900">
+                                Returned
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-2.5 pl-2 text-right font-mono text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 font-semibold whitespace-nowrap">
+                            {item.fine}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* ---------------------------------------------------------------
+                COLUMN 3: RIGHT COLUMN (RESERVATIONS, PAYMENT HISTORY, FINES INFO)
+                --------------------------------------------------------------- */}
+            <div className="lg:col-span-4 space-y-4 sm:space-y-6 min-w-0 max-w-full">
+              {/* Widget 1: Reservations */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Reservations</h3>
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span>This Week</span>
+                    <Icon name="chevron-down" className="w-3 h-3 ml-0.5" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {reservations.map(res => (
+                    <div key={res.id} className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <BookCover title={res.title} className="w-7 h-9 sm:w-8 sm:h-10 rounded-md shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{res.title}</h4>
+                          <span className="text-[10px] text-slate-400 block truncate">{res.author}</span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-mono">Queue {res.queue}</span>
+                        </div>
+                      </div>
+
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold shrink-0 ${
+                        res.status === 'Ready'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-orange-50 dark:bg-orange-950/60 text-libra-500 dark:text-libra-400 border border-orange-200 dark:border-orange-800'
+                      }`}>
+                        {res.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Widget 2: Payment History */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Payment History</h3>
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span>This Week</span>
+                    <Icon name="chevron-down" className="w-3 h-3 ml-0.5" />
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 sm:space-y-3">
+                  {paymentHistory.map(pay => (
+                    <div key={pay.id} className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 last:border-none last:pb-0">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 block">{pay.date}</span>
+                        <span className="font-medium text-[11px] sm:text-xs text-slate-800 dark:text-slate-200 line-clamp-1">{pay.desc}</span>
+                      </div>
+                      <span className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-white font-mono ml-2 shrink-0">
+                        {pay.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Widget 3: Fines Info */}
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow min-w-0 max-w-full overflow-hidden">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Fines Info</h3>
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span>This Week</span>
+                    <Icon name="chevron-down" className="w-3 h-3 ml-0.5" />
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 sm:space-y-3">
+                  {finesList.map(fn => (
+                    <div key={fn.id} className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <BookCover title={fn.title} className="w-6 h-8 sm:w-7 sm:h-9 rounded-md shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{fn.title}</h4>
+                          <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono block truncate">{fn.code}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        <span className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-white font-mono">{fn.amount}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
+                          fn.reason === 'Late'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 border border-amber-200 dark:border-amber-800'
+                            : fn.reason === 'Damage'
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-800'
+                            : 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 border border-purple-200 dark:border-purple-800'
+                        }`}>
+                          {fn.reason}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal: Edit Member Profile */}
+          {showEditModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white dark:bg-[#151b2a] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-5 sm:p-6 card-shadow relative text-xs">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-bold"
+                >
+                  &times;
+                </button>
+
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Edit Member Account</h3>
+                <p className="text-[11px] text-slate-400 mb-4">Update contact information or account password</p>
+
+                {editSuccess && (
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 text-emerald-800 dark:text-emerald-200 text-xs">
+                    {editSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveMember} className="space-y-3.5">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">New Password (Optional)</label>
+                    <input
+                      type="password"
+                      placeholder="Leave blank to keep unchanged"
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-libra-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editSaving}
+                      className="px-4 py-2 bg-libra-500 text-white font-bold rounded-xl shadow transition"
+                    >
+                      {editSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // DASHBOARD OVERVIEW VIEW
+    // =========================================================================
+    function DashboardOverview({ books = [], members = [], staffList = [], transactions = [], currentUser, onNavigate, onRefresh }) {
+      const activeLoans = transactions.filter(t => t.Return_Date === null);
+      const overdueLoans = activeLoans.filter(t => t.Days_Overdue > 0);
+
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Welcome Banner */}
+          <div className="bg-gradient-to-r from-[#1e2433] via-[#232c40] to-libra-900 text-white rounded-3xl p-5 sm:p-7 card-shadow flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+            <div className="relative z-10">
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-libra-500 text-white uppercase tracking-wider inline-block mb-2">
+                Library Central Hub
+              </span>
+              <h2 className="text-lg sm:text-2xl font-extrabold font-heading">
+                Hello, {currentUser.name}! 📚
+              </h2>
+              <p className="text-xs text-slate-300 mt-1 max-w-lg">
+                Manage catalogs, circulation, patron accounts, and track books with real-time ACID transactions.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 w-full sm:w-auto">
+              <button
+                onClick={() => onNavigate('books')}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-libra-500 hover:bg-libra-600 text-white font-bold rounded-2xl text-xs transition shadow-md shadow-libra-500/20 text-center"
+              >
+                Browse Catalog
+              </button>
+              <button
+                onClick={() => onNavigate('members')}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold rounded-2xl text-xs transition text-center"
+              >
+                View Members
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 card-shadow">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block">Total Books</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-heading mt-1 block">
+                {books.length}
+              </span>
+              <span className="text-[10px] text-emerald-500 font-semibold mt-1 block truncate">Inventory synced</span>
+            </div>
+
+            <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 card-shadow">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block">Active Members</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-heading mt-1 block">
+                {members.length}
+              </span>
+              <span className="text-[10px] text-libra-500 font-semibold mt-1 block truncate">Registered patrons</span>
+            </div>
+
+            <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 card-shadow">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block">Active Loans</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-heading mt-1 block">
+                {activeLoans.length}
+              </span>
+              <span className="text-[10px] text-blue-500 font-semibold mt-1 block truncate">Currently on loan</span>
+            </div>
+
+            <div className="bg-white dark:bg-[#151b2a] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 card-shadow">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block">Overdue Books</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-rose-500 font-heading mt-1 block">
+                {overdueLoans.length}
+              </span>
+              <span className="text-[10px] text-rose-500 font-semibold mt-1 block truncate">Requires check-in</span>
+            </div>
+          </div>
+
+          {/* Recent Circulation Activities */}
+          <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Recent Circulation Activity</h3>
+              <button
+                onClick={() => onNavigate('activity')}
+                className="text-xs text-libra-500 font-semibold hover:underline"
+              >
+                View All Activity &rarr;
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {transactions.slice(0, 5).map(tx => (
+                <div key={tx.Transaction_ID} className="py-2.5 sm:py-3 flex items-center justify-between text-xs gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <BookCover title={tx.Book_Title} className="w-6 h-8 rounded-md shrink-0" />
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-900 dark:text-white block truncate">{tx.Book_Title}</span>
+                      <span className="text-[10px] text-slate-400 block truncate">Patron: {tx.Member_Name}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-mono text-[10px] sm:text-[11px] text-slate-500 block">{tx.Issue_Date}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
+                      tx.Return_Date ? 'bg-emerald-50 text-emerald-600' : 'bg-libra-500 text-white'
+                    }`}>
+                      {tx.Return_Date ? 'Returned' : 'Active'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // BOOKS CATALOG VIEW (RESPONSIVE ON ANY SCREEN)
+    // =========================================================================
+    function BooksCatalogView({ books = [], currentUser, onRefresh, searchQuery = '' }) {
+      const [filterGenre, setFilterGenre] = useState('all');
+      const [localSearch, setLocalSearch] = useState(searchQuery);
+      const [showAddModal, setShowAddModal] = useState(false);
+
+      const [newBook, setNewBook] = useState({
+        Title: '', Genre: 'Computer Science', Publication_Year: 2024, Total_Copies: 5, Available_Copies: 5, Publisher_ID: 1
+      });
+
+      const filtered = useMemo(() => {
+        return books.filter(b => {
+          const matchGenre = filterGenre === 'all' || b.Genre.toLowerCase() === filterGenre.toLowerCase();
+          const q = (localSearch || searchQuery).toLowerCase();
+          const matchSearch = !q || (
+            b.Title.toLowerCase().includes(q) ||
+            b.Genre.toLowerCase().includes(q) ||
+            (b.Authors && b.Authors.some(a => a.Name.toLowerCase().includes(q)))
+          );
+          return matchGenre && matchSearch;
+        });
+      }, [books, filterGenre, localSearch, searchQuery]);
+
+      const handleCreateBook = async (e) => {
+        e.preventDefault();
+        try {
+          await apiRequest('/books', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newBook)
+          });
+          setShowAddModal(false);
+          setNewBook({ Title: '', Genre: 'Computer Science', Publication_Year: 2024, Total_Copies: 5, Available_Copies: 5, Publisher_ID: 1 });
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          alert(err.message || 'Failed to add book');
+        }
+      };
+
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-heading">Book Catalog Inventory</h2>
+              <p className="text-xs text-slate-400">Search books, check shelf availability, and manage titles</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search catalog..."
+                value={localSearch}
+                onChange={e => setLocalSearch(e.target.value)}
+                className="px-3 py-1.5 bg-white dark:bg-[#151b2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white flex-1 sm:w-44 focus:ring-1 focus:ring-libra-500 focus:outline-none"
+              />
+              <select
+                value={filterGenre}
+                onChange={e => setFilterGenre(e.target.value)}
+                className="px-3 py-1.5 bg-white dark:bg-[#151b2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+              >
+                <option value="all">All Genres</option>
+                <option value="computer science">Computer Science</option>
+                <option value="artificial intelligence">Artificial Intelligence</option>
+                <option value="algorithms">Algorithms</option>
+                <option value="networking">Networking</option>
+                <option value="database systems">Database Systems</option>
+              </select>
+
+              {currentUser && currentUser.role !== 'student' && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="px-3.5 py-1.5 bg-libra-500 hover:bg-libra-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <Icon name="plus" className="w-3.5 h-3.5" /> Add Book
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Book Cards Grid */}
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-5">
+            {filtered.map(book => {
+              const isOutOfStock = book.Available_Copies <= 0;
+              return (
+                <div key={book.Book_ID} className="bg-white dark:bg-[#151b2a] rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 dark:border-slate-800 card-shadow flex flex-col justify-between hover:shadow-lg transition">
+                  <div>
+                    <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
+                      <BookCover title={book.Title} className="w-12 h-16 sm:w-14 sm:h-20 rounded-xl" />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 font-bold block">BK-#{book.Book_ID}</span>
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-white line-clamp-2 mt-0.5">{book.Title}</h4>
+                        <span className="text-[10px] text-slate-400 block mt-1 truncate">
+                          {book.Authors?.map(a => a.Name).join(', ') || 'Faculty'}
+                        </span>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {book.Genre}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-[11px] pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                      <span className="text-slate-400">Stock Status:</span>
+                      <span className={`font-bold ${isOutOfStock ? 'text-rose-500' : 'text-emerald-500'}`}>
+                        {isOutOfStock ? '0 Available' : `${book.Available_Copies} of ${book.Total_Copies} Available`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2">
+                    {isOutOfStock ? (
+                      <div className="w-full py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 text-center text-[10px] font-bold">
+                        All Copies Borrowed
+                      </div>
+                    ) : (
+                      <div className="w-full py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 text-center text-[10px] font-bold">
+                        Available at Counter
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Modal: Add Book */}
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl max-w-md w-full p-5 sm:p-6 card-shadow border border-slate-200 dark:border-slate-800 text-xs">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Add New Book to Catalog</h3>
+                  <button onClick={() => setShowAddModal(false)} className="text-slate-400 text-lg font-bold">&times;</button>
+                </div>
+                <form onSubmit={handleCreateBook} className="space-y-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Book Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Title"
+                      value={newBook.Title}
+                      onChange={e => setNewBook({...newBook, Title: e.target.value})}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Genre *</label>
+                    <select
+                      value={newBook.Genre}
+                      onChange={e => setNewBook({...newBook, Genre: e.target.value})}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    >
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Artificial Intelligence">Artificial Intelligence</option>
+                      <option value="Algorithms">Algorithms</option>
+                      <option value="Networking">Networking</option>
+                      <option value="Database Systems">Database Systems</option>
+                      <option value="Mathematics">Mathematics</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Copies</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newBook.Total_Copies}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 1;
+                          setNewBook({...newBook, Total_Copies: val, Available_Copies: val});
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Year</label>
+                      <input
+                        type="number"
+                        value={newBook.Publication_Year}
+                        onChange={e => setNewBook({...newBook, Publication_Year: parseInt(e.target.value) || 2024})}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-3">
+                    <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded-xl">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-libra-500 text-white font-bold rounded-xl">Save Book</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // LIBRARY ACTIVITY & CIRCULATION VIEW (RESPONSIVE TABLE)
+    // =========================================================================
+    function LibraryActivityView({ transactions = [], books = [], members = [], currentUser, onRefresh }) {
+      const [statusFilter, setStatusFilter] = useState('all');
+      const [showIssueModal, setShowIssueModal] = useState(false);
+      const [issueForm, setIssueForm] = useState({ Book_ID: '', Member_ID: '', Staff_ID: 1, Duration_Days: 14 });
+      const [issueLoading, setIssueLoading] = useState(false);
+
+      const filtered = useMemo(() => {
+        return transactions.filter(t => {
+          if (statusFilter === 'active') return t.Return_Date === null;
+          if (statusFilter === 'overdue') return t.Return_Date === null && t.Days_Overdue > 0;
+          if (statusFilter === 'returned') return t.Return_Date !== null;
+          return true;
+        });
+      }, [transactions, statusFilter]);
+
+      const handleIssueBook = async (e) => {
+        e.preventDefault();
+        setIssueLoading(true);
+        try {
+          await apiRequest('/circulation/issue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(issueForm)
+          });
+          setShowIssueModal(false);
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          alert(err.message || 'Issue failed');
+        } finally {
+          setIssueLoading(false);
+        }
+      };
+
+      const handleReturnBook = async (transactionId) => {
+        if (!confirm(`Confirm check-in / return for Loan #${transactionId}?`)) return;
+        try {
+          await apiRequest('/circulation/return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ Transaction_ID: transactionId })
+          });
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          alert(err.message || 'Return failed');
+        }
+      };
+
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-heading">Library Activity & Circulation</h2>
+              <p className="text-xs text-slate-400">Complete transaction ledger of book checkouts, returns, and fines</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex bg-white dark:bg-[#151b2a] p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                {['all', 'active', 'overdue', 'returned'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-2.5 sm:px-3 py-1 rounded-lg capitalize font-semibold transition ${
+                      statusFilter === tab
+                        ? 'bg-libra-500 text-white'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {currentUser && currentUser.role !== 'student' && (
+                <button
+                  onClick={() => setShowIssueModal(true)}
+                  className="px-3.5 py-1.5 bg-libra-500 hover:bg-libra-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+                >
+                  <Icon name="plus" className="w-3.5 h-3.5" /> Issue Book
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 card-shadow overflow-x-auto">
+            <table className="w-full min-w-[560px] sm:min-w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 font-semibold uppercase">
+                  <th className="pb-3">ID</th>
+                  <th className="pb-3">Book</th>
+                  <th className="pb-3">Member</th>
+                  <th className="pb-3">Issue Date</th>
+                  <th className="pb-3">Due Date</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Fine</th>
+                  {currentUser && currentUser.role !== 'student' && <th className="pb-3 text-right">Action</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {filtered.map(t => (
+                  <tr key={t.Transaction_ID} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="py-2.5 font-mono text-slate-400">#{t.Transaction_ID}</td>
+                    <td className="py-2.5 font-bold text-slate-900 dark:text-white">{t.Book_Title}</td>
+                    <td className="py-2.5 text-slate-600 dark:text-slate-300">{t.Member_Name}</td>
+                    <td className="py-2.5 font-mono text-[11px] text-slate-500">{t.Issue_Date}</td>
+                    <td className="py-2.5 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">{t.Due_Date}</td>
+                    <td className="py-2.5">
+                      {t.Return_Date ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
+                          Returned ({t.Return_Date})
+                        </span>
+                      ) : t.Days_Overdue > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600">
+                          Overdue ({t.Days_Overdue}d)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-libra-500 text-white">
+                          Borrowed
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                      ₹{parseFloat(t.Fine_Amount || 0).toFixed(2)}
+                    </td>
+                    {currentUser && currentUser.role !== 'student' && (
+                      <td className="py-2.5 text-right">
+                        {!t.Return_Date && (
+                          <button
+                            onClick={() => handleReturnBook(t.Transaction_ID)}
+                            className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg shadow-sm"
+                          >
+                            Return
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal: Issue Book */}
+          {showIssueModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white dark:bg-[#151b2a] rounded-3xl max-w-md w-full p-5 sm:p-6 card-shadow border border-slate-200 dark:border-slate-800 text-xs">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Issue Book to Member</h3>
+                  <button onClick={() => setShowIssueModal(false)} className="text-slate-400 text-lg font-bold">&times;</button>
+                </div>
+                <form onSubmit={handleIssueBook} className="space-y-3">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Select Book *</label>
+                    <select
+                      required
+                      value={issueForm.Book_ID}
+                      onChange={e => setIssueForm({...issueForm, Book_ID: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl"
+                    >
+                      <option value="">-- Choose Book --</option>
+                      {books.filter(b => b.Available_Copies > 0).map(b => (
+                        <option key={b.Book_ID} value={b.Book_ID}>
+                          #{b.Book_ID} - {b.Title} ({b.Available_Copies} in stock)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Select Member *</label>
+                    <select
+                      required
+                      value={issueForm.Member_ID}
+                      onChange={e => setIssueForm({...issueForm, Member_ID: parseInt(e.target.value)})}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 rounded-xl"
+                    >
+                      <option value="">-- Choose Member --</option>
+                      {members.map(m => (
+                        <option key={m.Member_ID} value={m.Member_ID}>
+                          #{m.Member_ID} - {m.Full_Name} ({m.Email_Address})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-3">
+                    <button type="button" onClick={() => setShowIssueModal(false)} className="px-4 py-2 border rounded-xl">Cancel</button>
+                    <button type="submit" disabled={issueLoading} className="px-4 py-2 bg-libra-500 text-white font-bold rounded-xl">
+                      {issueLoading ? 'Processing...' : 'Confirm Issue'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // INBOX & ALERTS VIEW
+    // =========================================================================
+    function InboxAlertsView({ transactions = [], currentUser }) {
+      const activeLoans = transactions.filter(t => t.Return_Date === null);
+      const overdue = activeLoans.filter(t => t.Days_Overdue > 0);
+
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-heading">Inbox & Notifications</h2>
+            <p className="text-xs text-slate-400">Library notices, due date reminders, and system announcements</p>
+          </div>
+
+          <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow space-y-3.5 sm:space-y-4">
+            {overdue.length > 0 && (
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-3">
+                <Icon name="alert-triangle" className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold">Overdue Book Alert</h4>
+                  <p className="text-[11px] mt-0.5">
+                    There are {overdue.length} book loans currently overdue. Please ensure they are checked in or renewed.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs flex items-start gap-3">
+              <Icon name="check-circle" className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">Welcome to Modern Library System</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  The new modern interface is live with real-time ACID transaction guarantees and mobile support.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs flex items-start gap-3">
+              <Icon name="info" className="w-5 h-5 text-libra-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">Library Counter Timings</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  The circulation desk operates from 08:00 AM to 08:00 PM on all weekdays.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // SETTINGS VIEW
+    // =========================================================================
+    function SettingsView({ currentUser, theme, toggleTheme, onRefresh }) {
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-heading">Settings & Preferences</h2>
+            <p className="text-xs text-slate-400">Manage appearance, account credentials, and system options</p>
+          </div>
+
+          <div className="bg-white dark:bg-[#151b2a] rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 card-shadow space-y-5 sm:space-y-6 max-w-2xl">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-2">Account Overview</h3>
+              <div className="bg-slate-50 dark:bg-slate-900/80 p-3.5 sm:p-4 rounded-2xl text-xs space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Account Name:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Role:</span>
+                  <span className="font-bold text-libra-500 uppercase">{currentUser.role}</span>
+                </div>
+                {currentUser.email && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Email:</span>
+                    <span className="font-mono text-slate-800 dark:text-slate-200">{currentUser.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-2">Appearance</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">Dark Mode</span>
+                  <span className="text-[11px] text-slate-400">Toggle between Light and Dark interface</span>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold rounded-xl transition flex items-center gap-2"
+                >
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="w-4 h-4" />
+                  {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
